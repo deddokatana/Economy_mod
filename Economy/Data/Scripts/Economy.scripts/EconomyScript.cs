@@ -1845,10 +1845,55 @@ namespace Economy.scripts
                 {
                     if (split[1].Equals("confirm", StringComparison.InvariantCultureIgnoreCase)) // run the actual command
                     {
+                        Dictionary<string, int> requiredCompenents = new Dictionary<string, int>() ;
                         // step one .. get any form of list of all needed components on the grid.
                         foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                         {
-                            currentBlock.GetMissingComponents();
+                            var prerequisiteComponents = currentBlock.GetObjectBuilder().ConstructionInventory.Items; //all components needed to build the block
+                            var appliedComponents = currentBlock.GetObjectBuilder().ConstructionStockpile.Items; // all components currently within the block during construction
+
+                            // group the 2 tables to produce key and item sum pairs
+
+
+                            var groupedPrerequisites = prerequisiteComponents.GroupBy(part => part.PhysicalContent)
+                                .Select(
+                                    g => new
+                                    {
+                                        Key = g.Key,
+                                        Value = g.Sum(s => Convert.ToInt32(s.Obsolete_AmountDecimal)) // attempt to convert {"key":{1,2,3}} into {"key":6}
+                                    });
+
+                            var groupedApplied = appliedComponents.GroupBy(part => part.PhysicalContent)
+                                .Select(
+                                    g => new
+                                    {
+                                        Key = g.Key,
+                                        Value = g.Sum(s => s.Amount) // attempt to convert {"key":{1,2,3}} into {"key":6}
+                                    });
+
+                            foreach (MyObjectBuilder_InventoryItem row in prerequisiteComponents)
+                            {
+                                MyObjectBuilder_StockpileItem currentRow = new MyObjectBuilder_StockpileItem(); // current inventory item as stockpile item for comparison.
+                                currentRow.Amount = Convert.ToInt32(row.Obsolete_AmountDecimal) ;
+                                currentRow.PhysicalContent = row.PhysicalContent;
+
+                                Tuple[]  =;
+
+
+
+                                if (!appliedComponents.Contains(currentRow)) //checks that applied component quantity has not reached max needed for that prerequisite row.
+                                {
+                                    appliedComponents.;
+
+                                     - currentRow.Amount
+                                }
+
+
+
+
+                                // drop pairs of matching list items
+
+                            }
                         } 
                         
 
