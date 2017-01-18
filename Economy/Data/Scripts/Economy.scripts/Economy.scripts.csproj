@@ -56,6 +56,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CommandLine">
+      <HintPath>..\..\..\..\..\..\..\..\..\..\..\Program Files\Reference Assemblies\SpaceEngineers\CommandLine.dll</HintPath>
+    </Reference>
     <Reference Include="Sandbox.Common">
       <HintPath>C:\Program Files\Reference Assemblies\SpaceEngineers\Sandbox.Common.dll</HintPath>
       <Private>False</Private>

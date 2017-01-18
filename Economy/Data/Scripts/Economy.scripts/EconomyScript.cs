@@ -1831,6 +1831,48 @@ namespace Economy.scripts
             }
             #endregion news system
 
+            #region buyneededcompenents
+            // buyneededcompenents command
+            if (split[0].Equals("/buyneededcomponents", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var selectedShip = Support.FindLookAtEntity(MyAPIGateway.Session.ControlledObject, true, false, false, false, false, false, false) as IMyCubeGrid;
+                BoundingBoxD selectedShipBox = new BoundingBoxD(); //imagine a shoebox the size of the targeted grid
+                selectedShipBox.Max = selectedShip.Max;
+                selectedShipBox.Min = selectedShip.Min;
+                BoundingSphereD selectedShipSphere = BoundingSphereD.CreateFromBoundingBox(selectedShipBox);
+                var selectedShipBlocks = selectedShip.GetBlocksInsideSphere(ref selectedShipSphere);
+                if (selectedShip != null)
+                {
+                    if (split[1].Equals("confirm", StringComparison.InvariantCultureIgnoreCase)) // run the actual command
+                    {
+                        // step one .. get any form of list of all needed components on the grid.
+                        foreach (IMySlimBlock currentBlock in selectedShipBlocks)
+                        {
+                            currentBlock.GetMissingComponents();
+                        } 
+                        
+
+                   
+
+
+
+                    }
+                    {
+                        decimal amount;
+                        if (!decimal.TryParse(split[1], NumberStyles.Any, CultureInfo.InvariantCulture, out amount))
+                            amount = 0;
+                        amount = Convert.ToDecimal(amount, CultureInfo.InvariantCulture);
+                        MessageShipSale.SendMessage(selectedShip.EntityId, "buy", amount);
+                        return true;
+                    }
+
+                    MessageWorth.SendMessage(selectedShip.EntityId);
+                }
+                else
+                    MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS", "You need to target a ship or station to buy the components needed to finish building it.");
+                return true;
+            }
+
             #region help
             // help command
             if (split[0].Equals("/ehelp", StringComparison.InvariantCultureIgnoreCase))
