@@ -1854,10 +1854,6 @@ namespace Economy.scripts
                         // step one .. get any form of list of all needed components on the grid.
                         foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                         {
-                            if (currentBlock.FatBlock != null && currentBlock.FatBlock == skip)
-                            {
-                                continue;
-                            }
 
                             Dictionary<string, int> missing = new Dictionary<string, int>();
                             currentBlock.GetMissingComponents(missing);
@@ -1888,17 +1884,14 @@ namespace Economy.scripts
                             MessageBuy.SendMessage(split[2].ToString(), componenttobuy.Value, content.TypeId.ToString(), componenttobuy.Key.ToString(), 0, true, true, false);
                         }
                     }
-                    else // if /buycomponents
+                    else // if /buyneededcomponents
                     {
                         // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
                         SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
                         // step one .. get any form of list of all needed components on the grid.
                         foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                         {
-                            if (currentBlock.FatBlock != null && currentBlock.FatBlock == skip)
-                            {
-                                continue;
-                            }
+                           
 
                             Dictionary<string, int> missing = new Dictionary<string, int>();
                             currentBlock.GetMissingComponents(missing);
@@ -1917,6 +1910,8 @@ namespace Economy.scripts
                                     requiredComponents[component.Key] = component.Value;
                             }
                         }
+                        MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS",requiredComponents.ToString());
+                        MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS", "'/buyneededcomponents confirm' - [ALPHA] to purchase as many components as you can afford");
                     }
                 }
                 else
