@@ -1841,64 +1841,89 @@ namespace Economy.scripts
                 selectedShipBox.Min = selectedShip.Min;
                 BoundingSphereD selectedShipSphere = BoundingSphereD.CreateFromBoundingBox(selectedShipBox);
                 var selectedShipBlocks = selectedShip.GetBlocksInsideSphere(ref selectedShipSphere);
+                int failed = 0;
+                bool buyFromMerchant = false;
+                if (string.IsNullOrEmpty(split[2].ToString()))
+                    buyFromMerchant = true;
                 if (selectedShip != null)
                 {
                     if (split[1].Equals("confirm", StringComparison.InvariantCultureIgnoreCase)) // run the actual command
                     {
-                        Dictionary<string, int> requiredCompenents = new Dictionary<string, int>() ;
+                        // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
+                        SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
                         // step one .. get any form of list of all needed components on the grid.
                         foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                         {
-                            var prerequisiteComponents = currentBlock.GetObjectBuilder().ConstructionInventory.Items; //all components needed to build the block
-                            var appliedComponents = currentBlock.GetObjectBuilder().ConstructionStockpile.Items; // all components currently within the block during construction
+                            if (currentBlock.FatBlock != null && currentBlock.FatBlock == skip)
+                            {
+                                continue;
+                            }
 
-                            // group the 2 tables to produce key and item sum pairs
-                            // {"componentid":6}
+                            Dictionary<string, int> missing = new Dictionary<string, int>();
+                            currentBlock.GetMissingComponents(missing);
+                            if (missing == null)
+                            {
+                                failed++;
+                                continue;
+                            }
 
+                            foreach (var component in missing)
+                            {
+                                int prevCount;
+                                if (requiredComponents.TryGetValue(component.Key, out prevCount))
+                                    requiredComponents[component.Key] = prevCount + component.Value;
+                                else
+                                    requiredComponents[component.Key] = component.Value;
+                            }
+                        }
+                        // step 2 purchase components.
+                        foreach (KeyValuePair<string, int> componenttobuy in requiredComponents)
+                        {
+                            MyObjectBuilder_Base content;
+                            Dictionary<string, MyDefinitionBase> options;
+                            // Search for the item and find one match only, either by exact name or partial name.
+                            Support.FindPhysicalParts(componenttobuy.Key.ToString(), out content, out options);
+                            Double quantity = componenttobuy.Value;
 
-                            Dictionary<string, int> groupedPrerequisites = prerequisiteComponents.GroupBy(part => part.PhysicalContent)
-                                .Select(
-                                    g => new
-                                    {
-                                        Key = g.Key.TypeId.ToString(),
-                                        Value = g.Sum(s => Convert.ToInt32(s.Obsolete_AmountDecimal)) // attempt to convert {"key":{1,2,3}} into {"key":6}
-                                    }).ToDictionary(k => k.Key, v => v.Value);
-
-                            Dictionary<string,int> groupedApplied = appliedComponents.GroupBy(part => part.PhysicalContent)
-                                .Select(
-                                    g => new
-                                    {
-                                        Key = g.Key.TypeId.ToString(),
-                                        Value = g.Sum(s => s.Amount) // attempt to convert {"key":{1,2,3}} into {"key":6}
-                                    }).ToDictionary(k => k.Key, v => v.Value); 
-
-                            
-                            // merge 2 dictionaries - subtracting the groupApplied values from the groupPrerequisites values
-                            
-                        
-                        
-                            // initiate the buy function.  
-                        } 
-                        
-
-       
-
+                            MessageBuy.SendMessage(split[2].ToString(), componenttobuy.Value, content.TypeId.ToString(), componenttobuy.Key.ToString(), 0, true, true, false);
+                        }
                     }
+                    else // if /buycomponents
                     {
-                        decimal amount;
-                        if (!decimal.TryParse(split[1], NumberStyles.Any, CultureInfo.InvariantCulture, out amount))
-                            amount = 0;
-                        amount = Convert.ToDecimal(amount, CultureInfo.InvariantCulture);
-                        MessageShipSale.SendMessage(selectedShip.EntityId, "buy", amount);
-                        return true;
-                    }
+                        // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
+                        SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
+                        // step one .. get any form of list of all needed components on the grid.
+                        foreach (IMySlimBlock currentBlock in selectedShipBlocks)
+                        {
+                            if (currentBlock.FatBlock != null && currentBlock.FatBlock == skip)
+                            {
+                                continue;
+                            }
 
-                    MessageWorth.SendMessage(selectedShip.EntityId);
+                            Dictionary<string, int> missing = new Dictionary<string, int>();
+                            currentBlock.GetMissingComponents(missing);
+                            if (missing == null)
+                            {
+                                failed++;
+                                continue;
+                            }
+
+                            foreach (var component in missing)
+                            {
+                                int prevCount;
+                                if (requiredComponents.TryGetValue(component.Key, out prevCount))
+                                    requiredComponents[component.Key] = prevCount + component.Value;
+                                else
+                                    requiredComponents[component.Key] = component.Value;
+                            }
+                        }
+                    }
                 }
                 else
                     MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS", "You need to target a ship or station to buy the components needed to finish building it.");
                 return true;
             }
+            #endregion buyneededcomponents
 
             #region help
             // help command
