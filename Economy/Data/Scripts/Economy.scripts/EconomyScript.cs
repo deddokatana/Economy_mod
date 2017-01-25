@@ -1838,11 +1838,13 @@ namespace Economy.scripts
             if (split[0].Equals("/buyneededcomponents", StringComparison.InvariantCultureIgnoreCase))
             {
                 var selectedShip = Support.FindLookAtEntity(MyAPIGateway.Session.ControlledObject, true, false, false, false, false, false, false) as IMyCubeGrid;
-                BoundingBoxD selectedShipBox = new BoundingBoxD(); //imagine a shoebox the size of the targeted grid
-                selectedShipBox.Max = selectedShip.Max;
-                selectedShipBox.Min = selectedShip.Min;
-                BoundingSphereD selectedShipSphere = BoundingSphereD.CreateFromBoundingBox(selectedShipBox);
-                var selectedShipBlocks = selectedShip.GetBlocksInsideSphere(ref selectedShipSphere);
+                // begin grab list
+                // grab the list of block in the grid that the player is looking at
+                List<IMySlimBlock> selectedShipBlocks = new List<IMySlimBlock>(); // had to do it the none [] operanded way.. damn!
+                // note to dev .. the filter function on getblocks IS MANDATORY.. because each block that the function is looping through must return true.. no function means current block inside function returns void (or effectivly, false).
+                selectedShip.GetBlocks(selectedShipBlocks, (x) => x.Equals(x)); // add if current block is equal to itself .. eg. Always. therefore do not filter.
+                ClientLogger.WriteInfo("Ship Grid Size Was " + selectedShipBlocks.Count.ToString());
+                // end grab list
                 int failed = 0;
                 bool buyFromMerchant = false;
                 if (string.IsNullOrEmpty(split[2].ToString()))
