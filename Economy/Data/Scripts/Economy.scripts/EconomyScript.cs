@@ -272,6 +272,7 @@ namespace Economy.scripts
             _timer3600Events.Start();
 
             ServerLogger.Flush();
+
         }
 
         #endregion
@@ -395,6 +396,7 @@ namespace Economy.scripts
             catch (Exception ex)
             {
                 ClientLogger.WriteException(ex);
+                ClientLogger.WriteInfo("message text was: " + messageText.ToString());
                 MyAPIGateway.Utilities.ShowMessage("Error", "An exception has been logged in the file: {0}", ClientLogger.LogFileName);
             }
         }
@@ -1889,33 +1891,42 @@ namespace Economy.scripts
                         // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
                         SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
                         // step one .. get any form of list of all needed components on the grid.
-                        foreach (IMySlimBlock currentBlock in selectedShipBlocks)
+                        try
                         {
-                           
-
-                            Dictionary<string, int> missing = new Dictionary<string, int>();
-                            currentBlock.GetMissingComponents(missing);
-                            if (missing == null)
+                            foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                             {
-                                failed++;
-                                continue;
-                            }
 
-                            foreach (var component in missing)
-                            {
-                                int prevCount;
-                                if (requiredComponents.TryGetValue(component.Key, out prevCount))
-                                    requiredComponents[component.Key] = prevCount + component.Value;
-                                else
-                                    requiredComponents[component.Key] = component.Value;
+
+                                Dictionary<string, int> missing = new Dictionary<string, int>();
+                                currentBlock.GetMissingComponents(missing);
+                                if (missing == null)
+                                {
+                                    failed++;
+                                    continue;
+                                }
+
+                                foreach (var component in missing)
+                                {
+                                    int prevCount;
+                                    if (requiredComponents.TryGetValue(component.Key, out prevCount))
+                                        requiredComponents[component.Key] = prevCount + component.Value;
+                                    else
+                                        requiredComponents[component.Key] = component.Value;
+                                }
                             }
                         }
-                        MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS",requiredComponents.ToString());
+                        catch (Exception e)
+                        {
+                            ClientLogger.WriteInfo("Ship Grid Size Was " + selectedShipBlocks.Count.ToString());
+                        }
+                        // MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS",requiredComponents.ToString());
                         MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS", "'/buyneededcomponents confirm' - [ALPHA] to purchase as many components as you can afford");
                     }
                 }
                 else
-                    MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS", "You need to target a ship or station to buy the components needed to finish building it.");
+                {
+                    MyAPIGateway.Utilities.ShowMessage("BAL", "You need to target a ship or station to buy the components needed to finish building it.");
+                }
                 return true;
             }
             #endregion buyneededcomponents
