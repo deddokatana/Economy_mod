@@ -129,6 +129,7 @@
     <Compile Include="Messages\MessageConfig.cs" />
     <Compile Include="Messages\MessageMarketManagePlayer.cs" />
     <Compile Include="Messages\MessageReward.cs" />
+    <Compile Include="Messages\MessageBuyNeededComponents.cs" />
     <Compile Include="Messages\MessageUpdateClient.cs" />
     <Compile Include="Messages\MessageBuy.cs" />
     <Compile Include="Messages\MessageMarketManageNpc.cs" />

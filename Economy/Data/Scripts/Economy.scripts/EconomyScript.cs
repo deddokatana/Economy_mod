@@ -1835,6 +1835,8 @@ namespace Economy.scripts
 
             #region buyneededcompenents
             // buyneededcompenents command
+
+            // start input string sanatization
             if (split[0].Equals("/buyneededcomponents", StringComparison.InvariantCultureIgnoreCase))
             {
                 var selectedShip = Support.FindLookAtEntity(MyAPIGateway.Session.ControlledObject, true, false, false, false, false, false, false) as IMyCubeGrid;
