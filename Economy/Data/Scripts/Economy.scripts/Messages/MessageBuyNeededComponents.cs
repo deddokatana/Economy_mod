@@ -21,18 +21,24 @@
     [ProtoContract]
     public class MessageBuyNeededComponents : MessageBase
     {
+        /// <summary>
+        /// The Grid Entity ID
+        /// </summary>
         [ProtoMember(1)]
         public long EntityId;
 
         [ProtoMember(2)]
-        public string Ctype;
+        public string CommandStr;
 
-        [ProtoMember(3)]
-        public decimal Amount;
+        /// <summary>
+        /// specify the player to source all the components from - planned. 
+        /// </summary>
+        //[ProtoMember(3)]
+        //public string FromPlayer;
 
-        public static void SendMessage(long entityId, string ctype, decimal amount)
+        public static void SendMessage(long entityId, string CommandStr)
         {
-            ConnectionHelper.SendMessageToServer(new MessageBuyNeededComponents { EntityId = entityId, Ctype = ctype, Amount = amount, });
+            ConnectionHelper.SendMessageToServer(new MessageBuyNeededComponents { EntityId = entityId, CommandStr = CommandStr });
         }
 
         public override void ProcessClient()
@@ -44,11 +50,11 @@
         {
             // update our own timestamp here
             AccountManager.UpdateLastSeen(SenderSteamId, SenderLanguage);
-            EconomyScript.Instance.ServerLogger.WriteVerbose("ShipSale Request for {0} from '{1}'", EntityId, SenderSteamId);
+            EconomyScript.Instance.ServerLogger.WriteVerbose("BUYNEEDED Request for {0} from '{1}'", EntityId, SenderSteamId);
 
-            if (!EconomyScript.Instance.ServerConfig.ShipTrading)
+            if (!EconomyScript.Instance.ServerConfig.BuyNeededComponents)
             {
-                MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "Trading of ships is not enabled.");
+                MessageClientTextMessage.SendMessage(SenderSteamId, "BUYNEEDED", "Mass Buying Of Missing Components Is Not Enabled.");
                 return;
             }
 
@@ -56,13 +62,13 @@
             var character = player.GetCharacter();
             if (character == null)
             {
-                MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "You are dead. You cant trade ships while dead.");
+                MessageClientTextMessage.SendMessage(SenderSteamId, "BUYNEEDED", "You are dead. You cant trade ships while dead.");
                 return;
             }
 
             if (!MyAPIGateway.Entities.EntityExists(EntityId))
             {
-                MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "Sorry, the entity no longer exists!");
+                MessageClientTextMessage.SendMessage(SenderSteamId, "BUYNEEDED", "Sorry, the entity no longer exists!");
                 return;
             }
 
@@ -70,102 +76,87 @@
 
             if (selectedShip == null)
             {
-                MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "Sorry, the entity no longer exists!");
+                MessageClientTextMessage.SendMessage(SenderSteamId, "BUYNEEDED", "Sorry, the entity no longer exists!");
                 return;
             }
-            if (Ctype == "sell") // ctype - "Command Type"
+
+            if (CommandStr != null)
             {
-                if (Amount > 0)
                 {
-                    decimal amount = 0;
-                    if (selectedShip != null)
+                    // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
+                    SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
+                    // step one .. get any form of list of all needed components on the grid.
+                    try
                     {
-                        var check = ShipManager.CheckSellOrder(selectedShip.EntityId);
-                        if (check == 0)
+                        foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                         {
-                            int terminalBlocks = 0;
-                            int armorBlocks = 0;
-                            int gridCount = 0;
-                            int owned = 0;
 
-                            MyAPIGateway.Parallel.StartBackground(delegate ()
-                            // Background processing occurs within this block.
+
+                            Dictionary<string, int> missing = new Dictionary<string, int>();
+                            currentBlock.GetMissingComponents(missing);
+                            if (missing == null)
                             {
-                                TextLogger.WriteGameLog("## Econ ## ShipSale:background start");
-                                //EconomyScript.Instance.ServerLogger.Write("Validating and Updating Config.");
+                                failed++;
+                                continue;
+                            }
 
-                                try
-                                {
-                                    var grids = selectedShip.GetAttachedGrids(AttachedGrids.Static);
-                                    gridCount = grids.Count;
-                                    foreach (var grid in grids)
-                                    {
-                                        var blocks = new List<IMySlimBlock>();
-                                        grid.GetBlocks(blocks);
-
-                                        foreach (var block in blocks)
-                                        {
-                                            MyCubeBlockDefinition blockDefintion;
-                                            if (block.FatBlock == null)
-                                            {
-                                                armorBlocks++;
-                                                blockDefintion = MyDefinitionManager.Static.GetCubeBlockDefinition(block.GetObjectBuilder());
-                                            }
-                                            else
-                                            {
-                                                if (block.FatBlock.OwnerId != 0)
-                                                {
-                                                    terminalBlocks++;
-                                                    if (block.FatBlock.OwnerId == player.PlayerID)
-                                                        owned++;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    EconomyScript.Instance.ServerLogger.WriteException(ex);
-                                    MessageClientTextMessage.SendMessage(SenderSteamId, "ShipSale", "Failed and died. Please contact the administrator.");
-                                }
-
-                                TextLogger.WriteGameLog("## Econ ## ShipSale:background end");
-                            }, delegate ()
-                            // when the background processing is finished, this block will run foreground.
+                            foreach (var component in missing)
                             {
-                                TextLogger.WriteGameLog("## Econ ## ShipSale:foreground");
-
-                                try
-                                {
-                                    if (owned > (terminalBlocks * (EconomyConsts.ShipOwned / 100)))
-                                    {
-                                        ShipManager.CreateSellOrder(player.PlayerID, SenderSteamId, selectedShip.EntityId, Amount);
-                                        MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "Ship put up for sale for " + Amount);
-                                    }
-                                    else
-                                    {
-                                        MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "You need to own more than {0}% of the ship to sell it.", EconomyConsts.ShipOwned);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    EconomyScript.Instance.ServerLogger.WriteException(ex);
-                                    MessageClientTextMessage.SendMessage(SenderSteamId, "ShipSale", "Failed and died. Please contact the administrator.");
-                                }
-                            });
+                                int prevCount;
+                                if (requiredComponents.TryGetValue(component.Key, out prevCount))
+                                    requiredComponents[component.Key] = prevCount + component.Value;
+                                else
+                                    requiredComponents[component.Key] = component.Value;
+                            }
                         }
-                        else
-                            MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "Ship already for sale for " + check + ".");
                     }
-                    else
-                        MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "You need to target a ship or station to sell.");
+                    catch (Exception e)
+                    {
+                        ClientLogger.WriteInfo("Ship Grid Size Was " + selectedShipBlocks.Count.ToString());
+                    }
                 }
-                else
+
+            if (CommandStr == "confirm") // CommandStr - "Command Type"
+            {
+                // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
+                SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
+                // step one .. get any form of list of all needed components on the grid.
+                foreach (IMySlimBlock currentBlock in selectedShipBlocks)
                 {
-                    MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "You need to specify a price");
+
+                    Dictionary<string, int> missing = new Dictionary<string, int>();
+                    currentBlock.GetMissingComponents(missing);
+                    ClientLogger.WriteInfo("Number Of Blocks On Grid: " + missing.Count.ToString());
+                    if (missing == null)
+                    {
+                        failed++;
+                        continue;
+                    }
+
+                    foreach (var component in missing)
+                    {
+                        int prevCount;
+                        if (requiredComponents.TryGetValue(component.Key, out prevCount))
+                            requiredComponents[component.Key] = prevCount + component.Value;
+                        else
+                            requiredComponents[component.Key] = component.Value;
+                    }
+                }
+                // step 2 purchase components.
+                foreach (KeyValuePair<string, int> componenttobuy in requiredComponents)
+                {
+                    MyObjectBuilder_Base content;
+                    Dictionary<string, MyDefinitionBase> options;
+                    // Search for the item and find one match only, either by exact name or partial name.
+                    Support.FindPhysicalParts(componenttobuy.Key.ToString(), out content, out options);
+                    Double quantity = componenttobuy.Value;
+
+                    MessageBuy.SendMessage(split[2].ToString(), componenttobuy.Value, content.TypeId.ToString(), componenttobuy.Key.ToString(), 0, true, true, false);
                 }
             }
-            else if (Ctype == "cancel")
+
+
+            else if (CommandStr == "cancel")
             {
                 var check = ShipManager.CheckSellOrder(selectedShip.EntityId);
                 if (check != 0)
@@ -183,7 +174,7 @@
                 else
                     MessageClientTextMessage.SendMessage(SenderSteamId, "SHIPSALE", "Ship not for sale.");
             }
-            else if (Ctype == "buy")
+            else if (CommandStr == "buy")
             {
                 var check = ShipManager.CheckSellOrder(selectedShip.EntityId);
                 if (check != 0)

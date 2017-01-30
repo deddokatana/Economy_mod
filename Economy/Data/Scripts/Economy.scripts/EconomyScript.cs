@@ -1840,99 +1840,10 @@ namespace Economy.scripts
             if (split[0].Equals("/buyneededcomponents", StringComparison.InvariantCultureIgnoreCase))
             {
                 var selectedShip = Support.FindLookAtEntity(MyAPIGateway.Session.ControlledObject, true, false, false, false, false, false, false) as IMyCubeGrid;
-                // begin grab list
-                // grab the list of block in the grid that the player is looking at
-                List<IMySlimBlock> selectedShipBlocks = new List<IMySlimBlock>(); // had to do it the none [] operanded way.. damn!
-                // note to dev .. the filter function on getblocks IS MANDATORY.. because each block that the function is looping through must return true.. no function means current block inside function returns void (or effectivly, false).
-                selectedShip.GetBlocks(selectedShipBlocks, (x) => x.Equals(x)); // add if current block is equal to itself .. eg. Always. therefore do not filter.
-                ClientLogger.WriteInfo("Ship Grid Size Was " + selectedShipBlocks.Count.ToString());
-                // end grab list
-                int failed = 0;
-                bool buyFromMerchant = false;
-                if (string.IsNullOrEmpty(split[2].ToString()))
-                    buyFromMerchant = true;
-                if (selectedShip != null)
-                {
-                    if (split[1].Equals("confirm", StringComparison.InvariantCultureIgnoreCase)) // run the actual command
-                    {
-                        // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
-                        SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
-                        // step one .. get any form of list of all needed components on the grid.
-                        foreach (IMySlimBlock currentBlock in selectedShipBlocks)
-                        {
-
-                            Dictionary<string, int> missing = new Dictionary<string, int>();
-                            currentBlock.GetMissingComponents(missing);
-                            ClientLogger.WriteInfo("Number Of Blocks On Grid: " + missing.Count.ToString());
-                            if (missing == null)
-                            {
-                                failed++;
-                                continue;
-                            }
-
-                            foreach (var component in missing)
-                            {
-                                int prevCount;
-                                if (requiredComponents.TryGetValue(component.Key, out prevCount))
-                                    requiredComponents[component.Key] = prevCount + component.Value;
-                                else
-                                    requiredComponents[component.Key] = component.Value;
-                            }
-                        }
-                        // step 2 purchase components.
-                        foreach (KeyValuePair<string, int> componenttobuy in requiredComponents)
-                        {
-                            MyObjectBuilder_Base content;
-                            Dictionary<string, MyDefinitionBase> options;
-                            // Search for the item and find one match only, either by exact name or partial name.
-                            Support.FindPhysicalParts(componenttobuy.Key.ToString(), out content, out options);
-                            Double quantity = componenttobuy.Value;
-
-                            MessageBuy.SendMessage(split[2].ToString(), componenttobuy.Value, content.TypeId.ToString(), componenttobuy.Key.ToString(), 0, true, true, false);
-                        }
-                    }
-                    else // if /buyneededcomponents
-                    {
-                        // would like to thank Rynchodon of - http://steamcommunity.com/sharedfiles/filedetails/?id=444056169&searchtext=components - for the example from Counter.cs
-                        SortedDictionary<string, int> requiredComponents = new SortedDictionary<string, int>();
-                        // step one .. get any form of list of all needed components on the grid.
-                        try
-                        {
-                            foreach (IMySlimBlock currentBlock in selectedShipBlocks)
-                            {
-
-
-                                Dictionary<string, int> missing = new Dictionary<string, int>();
-                                currentBlock.GetMissingComponents(missing);
-                                if (missing == null)
-                                {
-                                    failed++;
-                                    continue;
-                                }
-
-                                foreach (var component in missing)
-                                {
-                                    int prevCount;
-                                    if (requiredComponents.TryGetValue(component.Key, out prevCount))
-                                        requiredComponents[component.Key] = prevCount + component.Value;
-                                    else
-                                        requiredComponents[component.Key] = component.Value;
-                                }
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            ClientLogger.WriteInfo("Ship Grid Size Was " + selectedShipBlocks.Count.ToString());
-                        }
-                        // MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS",requiredComponents.ToString());
-                        MyAPIGateway.Utilities.ShowMessage("BUYNEEDEDCOMPONENTS", "'/buyneededcomponents confirm' - [ALPHA] to purchase as many components as you can afford");
-                    }
-                }
-                else
-                {
-                    MyAPIGateway.Utilities.ShowMessage("BAL", "You need to target a ship or station to buy the components needed to finish building it.");
-                }
-                return true;
+                MessageBuyNeededComponents.SendMessage(selectedShip,split[1].ToString());
+                
+                
+                
             }
             #endregion buyneededcomponents
 

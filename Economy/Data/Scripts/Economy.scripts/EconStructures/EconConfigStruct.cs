@@ -151,6 +151,12 @@
         /// </summary>
         public bool ShipTrading;
 
+        /// <summary>
+        /// This Sets If Players Can Buy All Components Needed For There Ship in One Go.
+        /// </summary>
+        public bool BuyNeededComponents;
+
+
         #endregion
 
         #region TradeTimeout
