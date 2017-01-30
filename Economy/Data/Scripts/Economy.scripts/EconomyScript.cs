@@ -1861,6 +1861,7 @@ namespace Economy.scripts
 
                             Dictionary<string, int> missing = new Dictionary<string, int>();
                             currentBlock.GetMissingComponents(missing);
+                            ClientLogger.WriteInfo("Number Of Blocks On Grid: " + missing.Count.ToString());
                             if (missing == null)
                             {
                                 failed++;
